@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Undian Berhadiah</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow-y: auto; /* Mengizinkan scroll saat grid muncul */
+            flex-direction: column;
+        }
+        .container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            width: 95%;
+            max-width: 1800px;
+            position: relative;
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+        h1, h2 {
+            font-size: 3em;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+            margin: 0;
+        }
+        h2 {
+            font-size: 2em;
+            margin-top: 20px;
+            color: #f1c40f;
+        }
+        #raffle-box {
+            margin-top: 30px;
+            height: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        #raffle-number {
+            font-size: 6em;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.8);
+            transition: font-size 0.5s ease-in-out, color 0.5s;
+        }
+        #raffle-name {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #f1c40f;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        /* Kelas untuk pemenang yang sedang diungkap */
+        .winner-revealed #raffle-number {
+             font-size: 4.5em;
+             color: #2ecc71; /* Warna Hijau */
+        }
+        .winner-revealed #raffle-name {
+            opacity: 1;
+            color: #f39c12; /* Warna Oranye */
+        }
+        /* Kelas untuk Grid */
+        #winner-grid-container {
+            margin-top: 30px;
+            width: 100%;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+            max-height: 0;
+            overflow: hidden;
+        }
+        #winner-grid-container.show {
+            opacity: 1;
+            max-height: 2000px; /* Nilai besar agar bisa transisi */
+        }
+        .winner-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+            padding: 20px 0;
+        }
+        .winner-card {
+            background-color: #34495e;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.5s forwards;
+        }
+        .winner-card h4 {
+            font-size: 1.5em;
+            color: #f1c40f;
+            margin: 0 0 5px 0;
+        }
+        .winner-card p {
+            margin: 0;
+            color: #bdc3c7;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pengundian Berhadiah</h1>
+        <h2 id="prize-name">---</h2>
+        <div id="raffle-box">
+            <div id="raffle-number">---</div>
+            <div id="raffle-name"></div>
+        </div>
+        <div id="winner-grid-container">
+            <h3>Daftar Pemenang Lengkap:</h3>
+            <div id="winner-list" class="winner-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const raffleBoxEl = document.getElementById('raffle-box');
+        const raffleNumberEl = document.getElementById('raffle-number');
+        const raffleNameEl = document.getElementById('raffle-name');
+        const prizeNameEl = document.getElementById('prize-name');
+        const winnerListEl = document.getElementById('winner-list');
+        const winnerGridContainerEl = document.getElementById('winner-grid-container');
+
+        let participants = [];
+        let animationInterval;
+
+        // --- FUNGSI DELAY UTAMA ---
+        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        // -------------------------
+
+        // Menerima data peserta dari server saat terhubung
+        socket.on('raffleParticipants', (data) => {
+            participants = data;
+        });
+
+        // Memulai animasi pengundian
+        socket.on('startRaffleAnimation', (data) => {
+            prizeNameEl.textContent = `Untuk Hadiah: ${data.prizeName}`;
+            winnerListEl.innerHTML = '';
+            winnerGridContainerEl.classList.remove('show');
+            raffleBoxEl.classList.remove('winner-revealed');
+            
+            raffleNameEl.textContent = '';
+            
+            if (participants.length === 0) {
+                raffleNumberEl.textContent = 'Tidak Ada Peserta';
+                return;
+            }
+
+            // Memulai interval untuk mengganti nama dan nomor secara acak
+            animationInterval = setInterval(() => {
+                const randomParticipant = participants[Math.floor(Math.random() * participants.length)];
+                if (randomParticipant) {
+                    raffleNumberEl.textContent = randomParticipant.no_undian;
+                    raffleNameEl.textContent = randomParticipant.nama;
+                }
+            }, 50);
+        });
+
+        // Menerima data pemenang dan menghentikan animasi
+        socket.on('raffleWinner', async (data) => {
+            clearInterval(animationInterval); // Hentikan animasi acak
+            
+            // --- 1. SEQUENTIAL REVEAL (Pengungkapan Satu per Satu) ---
+            const winners = data.winners;
+            
+            for (let i = 0; i < winners.length; i++) {
+                const winner = winners[i];
+                
+                // Tampilkan pemenang saat ini di kotak utama
+                raffleNumberEl.textContent = winner.no_undian;
+                raffleNameEl.textContent = winner.nama;
+                
+                // Beri efek visual "ditemukan"
+                raffleBoxEl.classList.add('winner-revealed');
+                
+                // Tampilkan selama 2 detik
+                await delay(2000); 
+                
+                // Hapus efek visual untuk transisi ke pemenang berikutnya atau grid
+                raffleBoxEl.classList.remove('winner-revealed');
+                
+                // Bersihkan nama jika bukan pemenang terakhir
+                if (i < winners.length - 1) {
+                    raffleNameEl.textContent = 'Mencari pemenang berikutnya...';
+                    raffleNumberEl.textContent = '...';
+                    await delay(500); // Jeda pendek sebelum pemenang berikutnya
+                }
+            }
+
+            // --- 2. FINAL GRID DISPLAY (Tampilan Grid Semua Pemenang) ---
+            
+            // Bersihkan kotak utama setelah semua pemenang diungkap
+            raffleNumberEl.textContent = 'SEMUA PEMENANG DIUMUMKAN!';
+            raffleNameEl.textContent = '';
+            raffleBoxEl.classList.remove('winner-revealed'); // Pastikan efek hilang
+            
+            // Isi Grid
+            winners.forEach(winner => {
+                const winnerCard = document.createElement('div');
+                winnerCard.className = 'winner-card';
+                winnerCard.innerHTML = `
+                    <h4>${winner.nama}</h4>
+                    <p>No. Undian: ${winner.no_undian}</p>
+                    <p>RT: ${winner.rt}</p>
+                `;
+                winnerListEl.appendChild(winnerCard);
+            });
+
+            // Tampilkan grid pemenang
+            setTimeout(() => {
+                winnerGridContainerEl.classList.add('show');
+            }, 1000); // Tunda sedikit sebelum menampilkan grid
+        });
+    </script>
+</body>
+</html>

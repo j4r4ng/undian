@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Raffle Draw</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Roboto:wght@400&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            background-color: transparent;
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            text-align: center;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .title-container {
+            position: absolute;
+            top: 50px;
+            width: 100%;
+        }
+
+        #prize-name {
+            font-size: 3em;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .rolling-container {
+            position: relative;
+            width: 70%;
+            max-width: 600px;
+            height: 120px;
+            overflow: hidden;
+            border-radius: 25px;
+            background: linear-gradient(145deg, #3a3a3a, #202020);
+            border: 5px solid #ff7300;
+            box-shadow: 0 0 30px rgba(255,115,0,0.7), inset 0 0 15px rgba(0, 0, 0, 0.5);
+            display: none;
+            perspective: 1000px;
+            animation: bounceIn 0.8s ease-out;
+            transition: opacity 0.5s;
+        }
+
+        .rolling-container.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #current-rolling-text {
+            font-size: 3.5em;
+            font-family: 'Roboto', sans-serif;
+            color: #fff;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.7);
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+        
+        .winner-display {
+            background: linear-gradient(145deg, #00d2ff, #008cff);
+            border-radius: 25px;
+            padding: 40px 60px;
+            box-shadow: 0 15px 40px rgba(0, 198, 255, 0.5);
+            border: 5px solid #fff;
+            display: none;
+            animation: scaleIn 0.8s ease-out;
+            position: relative;
+            z-index: 10;
+        }
+
+        .winner-display.active {
+            display: block;
+        }
+
+        #winner-number {
+            font-size: 1.5em;
+            color: #ffe000;
+            text-shadow: 0 0 10px #ffe000;
+            margin: 0;
+            font-weight: bold;
+        }
+
+        #winner-name {
+            font-size: 4.5em;
+            color: #ffe000;
+            text-shadow: 0 0 15px #ffe000, 0 0 30px #ffe000;
+            margin: 0;
+            animation: pulse 1.5s infinite;
+        }
+        
+        #winner-rt {
+            font-size: 1.8em;
+            font-family: 'Roboto', sans-serif;
+            color: #e0f2f7;
+            margin-top: 10px;
+        }
+
+        .winner-grid-container {
+            display: none;
+            width: 80%;
+            max-width: 900px;
+            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            animation: fadeIn 1s ease-out;
+        }
+
+        .winner-grid-item {
+            background: rgba(52, 73, 94, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #3498db;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
+        }
+
+        .winner-grid-item h3 {
+            font-size: 1.5em;
+            margin: 0 0 5px 0;
+            color: #ecf0f1;
+        }
+
+        .winner-grid-item p {
+            font-size: 1em;
+            margin: 0;
+            color: #bdc3c7;
+        }
+
+        .winner-grid-item .win-no {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ffe000;
+            margin-bottom: 5px;
+        }
+
+        /* Keyframes */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.1); opacity: 1; }
+            80% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="title-container">
+        <h1 id="prize-name">Hadiah Undian!</h1>
+    </div>
+
+    <div class="rolling-container" id="rolling-container">
+        <span id="current-rolling-text"></span>
+    </div>
+
+    <div class="winner-display" id="winner-display">
+        <p>Selamat kepada!</p>
+        <span id="winner-number"></span>
+        <p id="winner-name">Nama Pemenang</p>
+        <p id="winner-rt">RT. 00</p>
+    </div>
+
+    <div class="winner-grid-container" id="winner-grid"></div>
+
+    <script>
+        const socket = io();
+
+        let allParticipants = [];
+        let rollingInterval;
+        let announcementDelay = 3000;
+
+        socket.on('raffleParticipants', (data) => {
+            allParticipants = data;
+        });
+
+        socket.on('startRaffleAnimation', (data) => {
+            document.getElementById('prize-name').textContent = data.prizeName || "Hadiah Undian!";
+            document.getElementById('winner-display').classList.remove('active');
+            document.getElementById('winner-grid').style.display = 'none';
+            document.getElementById('rolling-container').classList.add('active');
+
+            let currentRollingIndex = 0;
+            const rollingTextElement = document.getElementById('current-rolling-text');
+            
+            rollingInterval = setInterval(() => {
+                if (allParticipants.length > 0) {
+                    rollingTextElement.style.opacity = '0';
+                    setTimeout(() => {
+                        rollingTextElement.textContent = allParticipants[currentRollingIndex].nama;
+                        rollingTextElement.style.opacity = '1';
+                        currentRollingIndex = (currentRollingIndex + 1) % allParticipants.length;
+                    }, 200);
+                }
+            }, 300);
+        });
+
+        socket.on('raffleWinner', (data) => {
+            clearInterval(rollingInterval);
+            const winners = data.winners;
+            
+            // Log untuk debugging: cek apakah server mengirim lebih dari 1 pemenang
+            console.log('Winners received:', winners);
+            
+            if (winners.length > 0) {
+                document.getElementById('rolling-container').classList.remove('active');
+                
+                let winnerIndex = 0;
+                function announceNextWinner() {
+                    if (winnerIndex < winners.length) {
+                        const currentWinner = winners[winnerIndex];
+                        document.getElementById('winner-number').textContent = `No. Undian: ${currentWinner.no_undian}`;
+                        document.getElementById('winner-name').textContent = currentWinner.nama;
+                        document.getElementById('winner-rt').textContent = `RT. ${currentWinner.rt}`;
+                        document.getElementById('winner-display').classList.add('active');
+                        
+                        setTimeout(() => {
+                            document.getElementById('winner-display').classList.remove('active');
+                            winnerIndex++;
+                            announceNextWinner();
+                        }, announcementDelay);
+                    } else {
+                        displayWinnerGrid(winners);
+                    }
+                }
+                
+                setTimeout(() => {
+                    announceNextWinner();
+                }, 1000);
+            }
+        });
+
+        function displayWinnerGrid(winners) {
+            const gridContainer = document.getElementById('winner-grid');
+            gridContainer.innerHTML = '';
+            
+            winners.forEach(winner => {
+                const item = document.createElement('div');
+                item.className = 'winner-grid-item';
+                item.innerHTML = `
+                    <p class="win-no">No. Undian: ${winner.no_undian}</p>
+                    <h3>${winner.nama}</h3>
+                    <p>RT. ${winner.rt}</p>
+                `;
+                gridContainer.appendChild(item);
+            });
+            
+            gridContainer.style.display = 'grid';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Data Peserta</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: #34495e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+        .add-form-container {
+            background: #2c3e50;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .add-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .add-form input {
+            flex: 1;
+        }
+        .add-form textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #7f8c8d;
+            background-color: #34495e;
+            color: #ecf0f1;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+        .add-form button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #27ae60;
+            color: white;
+            cursor: pointer;
+        }
+        .filter-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .filter-form input, .filter-form select {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #7f8c8d;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+        }
+        .filter-form button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #7f8c8d;
+            text-align: left;
+        }
+        th {
+            background-color: #2980b9;
+        }
+        tr:nth-child(even) {
+            background-color: #44607a;
+        }
+        .actions-btn {
+            background: none;
+            border: none;
+            color: #3498db;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 0 5px;
+            transition: color 0.2s;
+        }
+        .actions-btn.delete-btn {
+            color: #e74c3c;
+        }
+        .actions-btn:hover {
+            color: #fff;
+        }
+        input.edit-input, select.edit-input {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            border: none;
+            width: 90%;
+            padding: 5px;
+        }
+        .bulk-actions {
+            margin-top: 10px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            align-items: center;
+        }
+        .bulk-actions select {
+            padding: 8px;
+            border-radius: 5px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+        }
+        .bulk-actions button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .bulk-actions #delete-selected-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .bulk-actions #update-status-btn {
+            background-color: #3498db;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Manajemen Data Peserta</h1>
+        <div class="add-form-container">
+            <h3>Tambahkan Peserta Tunggal</h3>
+            <form class="add-form" id="add-participant-form">
+                <input type="number" id="add-no-undian" placeholder="No. Undian" required>
+                <input type="text" id="add-nama" placeholder="Nama" required>
+                <input type="text" id="add-rt" placeholder="RT" required>
+                <button type="submit">Tambah</button>
+            </form>
+            <hr>
+            <h3>Tambahkan Peserta Massal</h3>
+            <p>Masukkan data dengan format: <code>no_undian, nama, rt</code> per baris.</p>
+            <form id="add-bulk-form">
+                <textarea id="bulk-data" placeholder="Contoh:&#10;101, Budi, 01&#10;102, Wati, 02&#10;103, Andi, 03"></textarea>
+                <button type="submit">Tambah Massal</button>
+            </form>
+            <hr>
+            <h3>Tambahkan Peserta dari Excel</h3>
+            <form id="upload-excel-form" enctype="multipart/form-data">
+                <p>Unggah file Excel (.xlsx) dengan kolom: <b>no_undian, nama, rt</b></p>
+                <input type="file" name="excelFile" id="excel-file-input" accept=".xlsx, .xls" required>
+                <button type="submit">Unggah File</button>
+            </form>
+        </div>
+        <form class="filter-form" action="/admin/peserta" method="GET">
+            <input type="text" name="rt" placeholder="Filter RT" value="<%= filter.rt || '' %>">
+            <input type="text" name="nama" placeholder="Filter Nama" value="<%= filter.nama || '' %>">
+            <select name="status">
+                <option value="">Semua Status</option>
+                <option value="valid" <%= filter.status === 'valid' ? 'selected' : '' %>>Belum Menang</option>
+                <option value="menang" <%= filter.status === 'menang' ? 'selected' : '' %>>Menang</option>
+                <option value="ditahan" <%= filter.status === 'ditahan' ? 'selected' : '' %>>Ditahan</option>
+            </select>
+            <button type="submit">Filter</button>
+        </form>
+        <form id="participant-form">
+            <table>
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="select-all"></th>
+                        <th>No. Undian</th>
+                        <th>Nama</th>
+                        <th>RT</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="participants-table">
+                    <% peserta.forEach(p => { %>
+                        <tr data-no-undian="<%= p.no_undian %>">
+                            <td><input type="checkbox" name="selected_participants" value="<%= p.no_undian %>"></td>
+                            <td><%= p.no_undian %></td>
+                            <td class="nama"><%= p.nama %></td>
+                            <td class="rt"><%= p.rt %></td>
+                            <td class="status"><%= p.status %></td>
+                            <td>
+                                <button type="button" class="actions-btn edit-btn">Edit</button>
+                                <button type="button" class="actions-btn delete-btn">Hapus</button>
+                                <button type="button" class="actions-btn save-btn" style="display:none;">Simpan</button>
+                                <button type="button" class="actions-btn cancel-btn" style="display:none;">Batal</button>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </form>
+        <div class="bulk-actions">
+            <span>Ubah Status:</span>
+            <select id="bulk-status-select">
+                <option value="valid">Belum Menang</option>
+                <option value="menang">Menang</option>
+                <option value="ditahan">Ditahan (Hold)</option>
+            </select>
+            <button id="update-status-btn" class="actions-btn">Ubah Status</button>
+            <button id="delete-selected-btn" class="actions-btn">Hapus yang Dipilih</button>
+        </div>
+    </div>
+    <script>
+        document.getElementById('add-participant-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const noUndian = document.getElementById('add-no-undian').value;
+            const nama = document.getElementById('add-nama').value;
+            const rt = document.getElementById('add-rt').value;
+            const response = await fetch('/api/peserta/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ no_undian: noUndian, nama: nama, rt: rt })
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                alert('Peserta berhasil ditambahkan.');
+                location.reload();
+            } else {
+                alert('Gagal menambahkan peserta. Nomor undian mungkin sudah ada.');
+            }
+        });
+
+        document.getElementById('add-bulk-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const bulkData = document.getElementById('bulk-data').value;
+            const response = await fetch('/api/peserta/add/bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data: bulkData })
+            });
+            const result = await response.json();
+            alert(result.message);
+            location.reload();
+        });
+
+        document.getElementById('upload-excel-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('excel-file-input');
+            const formData = new FormData();
+            formData.append('excelFile', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/api/peserta/add/excel', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const result = await response.json();
+                alert(result.message);
+                if (result.status === 'success') {
+                    location.reload();
+                }
+            } catch (error) {
+                alert('Terjadi kesalahan saat mengunggah file.');
+                console.error(error);
+            }
+        });
+
+        document.getElementById('select-all').addEventListener('change', (e) => {
+            const checkboxes = document.querySelectorAll('#participants-table input[type="checkbox"]');
+            for (const checkbox of checkboxes) {
+                checkbox.checked = e.target.checked;
+            }
+        });
+
+        document.getElementById('participants-table').addEventListener('click', async (e) => {
+            const target = e.target;
+            const row = target.closest('tr');
+            if (!row) return;
+            const noUndian = row.dataset.noUndian;
+            if (target.classList.contains('delete-btn')) {
+                if (confirm(`Yakin ingin menghapus peserta dengan nomor undian ${noUndian}?`)) {
+                    const response = await fetch('/api/peserta/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ no_undian: noUndian })
+                    });
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        row.remove();
+                        alert('Peserta berhasil dihapus.');
+                    } else {
+                        alert('Gagal menghapus peserta.');
+                    }
+                }
+            } else if (target.classList.contains('edit-btn')) {
+                const namaCell = row.querySelector('.nama');
+                const rtCell = row.querySelector('.rt');
+                const statusCell = row.querySelector('.status');
+                const currentStatus = statusCell.textContent.trim(); // Ambil status saat ini
+
+                namaCell.innerHTML = `<input type="text" class="edit-input" value="${namaCell.textContent}">`;
+                rtCell.innerHTML = `<input type="text" class="edit-input" value="${rtCell.textContent}">`;
+                
+                // --- UPDATE DROPDOWN UNTUK EDIT TUNGGAL ---
+                statusCell.innerHTML = `
+                    <select class="edit-input">
+                        <option value="valid" ${currentStatus === 'valid' ? 'selected' : ''}>✅ Bisa Ikut</option>
+                        <option value="menang" ${currentStatus === 'menang' ? 'selected' : ''}>❌ Sudah Menang</option>
+                        <option value="ditahan" ${currentStatus === 'ditahan' ? 'selected' : ''}>⏸️ Ditahan</option>
+                    </select>
+                `;
+                
+                row.querySelector('.edit-btn').style.display = 'none';
+                row.querySelector('.delete-btn').style.display = 'none';
+                row.querySelector('.save-btn').style.display = 'inline-block';
+                row.querySelector('.cancel-btn').style.display = 'inline-block';
+            } else if (target.classList.contains('save-btn')) {
+                const newNama = row.querySelector('.nama .edit-input').value;
+                const newRt = row.querySelector('.rt .edit-input').value;
+                const newStatus = row.querySelector('.status .edit-input').value;
+                const response = await fetch('/api/peserta/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        no_undian: noUndian,
+                        nama: newNama,
+                        rt: newRt,
+                        status: newStatus
+                    })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    row.querySelector('.nama').textContent = newNama;
+                    row.querySelector('.rt').textContent = newRt;
+                    row.querySelector('.status').textContent = newStatus;
+                    row.querySelector('.edit-btn').style.display = 'inline-block';
+                    row.querySelector('.delete-btn').style.display = 'inline-block';
+                    row.querySelector('.save-btn').style.display = 'none';
+                    row.querySelector('.cancel-btn').style.display = 'none';
+                    alert('Peserta berhasil diupdate.');
+                } else {
+                    alert('Gagal mengupdate peserta.');
+                }
+            } else if (target.classList.contains('cancel-btn')) {
+                location.reload();
+            }
+        });
+
+        document.getElementById('delete-selected-btn').addEventListener('click', async () => {
+            const checkboxes = document.querySelectorAll('#participants-table input[type="checkbox"]:checked');
+            const noUndiansToDelete = Array.from(checkboxes)
+                .map(checkbox => checkbox.value)
+                .filter(value => value !== 'on');
+
+            if (noUndiansToDelete.length === 0) {
+                alert('Pilih setidaknya satu peserta untuk dihapus.');
+                return;
+            }
+
+            if (confirm(`Yakin ingin menghapus ${noUndiansToDelete.length} peserta yang dipilih?`)) {
+                const response = await fetch('/api/peserta/delete/bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ no_undians: noUndiansToDelete })
+                });
+                const result = await response.json();
+                alert(result.message);
+                if (result.status === 'success') {
+                    location.reload();
+                }
+            }
+        });
+
+        document.getElementById('update-status-btn').addEventListener('click', async () => {
+            const checkboxes = document.querySelectorAll('#participants-table input[type="checkbox"]:checked');
+            const noUndiansToUpdate = Array.from(checkboxes)
+                .map(checkbox => checkbox.value)
+                .filter(value => value !== 'on');
+
+            if (noUndiansToUpdate.length === 0) {
+                alert('Pilih setidaknya satu peserta untuk diubah statusnya.');
+                return;
+            }
+
+            const newStatus = document.getElementById('bulk-status-select').value;
+            const confirmMessage = `Yakin ingin mengubah status ${noUndiansToUpdate.length} peserta menjadi '${newStatus}'?`;
+
+            if (confirm(confirmMessage)) {
+                const response = await fetch('/api/peserta/update/bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        no_undians: noUndiansToUpdate,
+                        new_status: newStatus
+                    })
+                });
+                const result = await response.json();
+                alert(result.message);
+                if (result.status === 'success') {
+                    location.reload();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pendaftaran Peserta Undian</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+            background: #34495e;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #7f8c8d;
+            border-radius: 5px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .result-box {
+            background-color: #2d3846;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+        #result-undian {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #00c6ff;
+            word-wrap: break-word; /* Memastikan teks tidak melebihi kotak */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pendaftaran Peserta</h1>
+        <form id="registration-form">
+            <div class="form-group">
+                <label for="nama">Nama Lengkap:</label>
+                <input type="text" id="nama" name="nama" required>
+            </div>
+            <div class="form-group">
+                <label for="rt">Nomor RT:</label>
+                <input type="text" id="rt" name="rt" required>
+            </div>
+            <div class="form-group">
+                <label for="jumlah_tiket">Jumlah Pembelian Tiket:</label>
+                <input type="number" id="jumlah_tiket" name="jumlah_tiket" min="1" value="1" required>
+            </div>
+            <button type="submit">Daftarkan</button>
+        </form>
+
+        <div class="result-box" id="result-box">
+            <p>Pendaftaran berhasil! Nomor Undian Anda:</p>
+            <p id="result-undian"></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('registration-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const nama = document.getElementById('nama').value;
+            const rt = document.getElementById('rt').value;
+            const jumlah_tiket = document.getElementById('jumlah_tiket').value;
+
+            const response = await fetch('/api/registrasi', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ nama, rt, jumlah_tiket: parseInt(jumlah_tiket) })
+            });
+
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                document.getElementById('result-undian').textContent = data.tiket.join(', ');
+                document.getElementById('result-box').style.display = 'block';
+                document.getElementById('registration-form').reset();
+            } else {
+                alert('Pendaftaran gagal. Silakan coba lagi.');
+            }
+        });
+    </script>
+</body>
+</html>

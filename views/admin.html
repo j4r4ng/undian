@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel - Undian</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #34495e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #fff;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        label {
+            font-weight: bold;
+        }
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #7f8c8d;
+            border-radius: 5px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #7f8c8d;
+            text-align: left;
+        }
+        th {
+            background-color: #2980b9;
+        }
+        tr:nth-child(even) {
+            background-color: #44607a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Panel Undian</h1>
+
+        <h2>Atur Undian</h2>
+        <form id="raffle-form">
+            <label for="prize-name">Nama Hadiah:</label>
+            <input type="text" id="prize-name" name="prize-name" required>
+
+            <label for="winner-count">Jumlah Pemenang:</label>
+            <input type="number" id="winner-count" name="winner-count" min="1" required>
+            
+            <label for="rt-filter">Filter RT (opsional):</label>
+            <input type="text" id="rt-filter" name="rt-filter" placeholder="misal: 01, 02">
+
+            <button type="submit">Mulai Acak</button>
+        </form>
+
+        <hr>
+
+        <h2>Daftar Peserta</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>No. Undian</th>
+                    <th>Nama</th>
+                    <th>RT</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="participants-table">
+                </tbody>
+        </table>
+
+        <h2>Daftar Pemenang</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nama Pemenang</th>
+                    <th>Hadiah</th>
+                </tr>
+            </thead>
+            <tbody id="winners-table">
+                </tbody>
+        </table>
+    </div>
+    
+    <script>
+        // Bagian ini akan berisi kode JavaScript untuk berkomunikasi
+        // dengan server (API) yang sudah kita buat sebelumnya.
+        
+        // Contoh: Mengambil data peserta dari server dan menampilkannya di tabel
+        async function fetchParticipants() {
+            // Kode untuk fetch data dari API di sini
+        }
+        
+        // Contoh: Mengirim data form undian ke server
+        document.getElementById('raffle-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prizeName = document.getElementById('prize-name').value;
+            const winnerCount = document.getElementById('winner-count').value;
+            const rtFilter = document.getElementById('rt-filter').value;
+            
+            // Kode untuk mengirim data ini ke API
+            console.log(`Mengirim undian untuk hadiah "${prizeName}" dengan ${winnerCount} pemenang dan filter RT: ${rtFilter}`);
+        });
+    </script>
+</body>
+</html>
